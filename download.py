@@ -32,9 +32,11 @@ class Downloader:
         segment_files = []
 
         for i, url in enumerate(segment_urls):
-            print('Downloading segment', i+1, '/', num_segments)
+            sys.stdout.write('\rDownloading segment %d/%d (%.1f)' % (i+1, num_segments, i+1/num_segments))
             segment_file = self.__download_to_tempfile(url)
             segment_files.append(segment_file)
+
+        print('Done.')
 
         concat_file = tempfile.NamedTemporaryFile(suffix='.ts', 
                                                   mode='wb',
@@ -145,6 +147,9 @@ class Downloader:
         return requests.get(chapters_url).json()
 
     def __get_hd_resource_url__(self, chapters_json, video_id):
+        if 'chapterList' not in chapters_json:
+            raise Exception("Doesn't seem to be a *video* archive.")
+
         chapters =  [
                         c for c
                         in chapters_json['chapterList']
@@ -165,11 +170,22 @@ class Downloader:
 
 
 if __name__ == '__main__':
+    import re
     import sys
-    if len(sys.argv) != 3:
-        print('Usage: %s page_url output_filename.mp4' % (sys.argv[0]), 
+
+    def default_filename(url):
+        html_filename = url.split('/')[-1]
+        basename, _ = html_filename.split('.html')
+        # 3452662-le-metro-de-l-expo   =>   le-metro-de-l-expo
+        basename = re.match('\d+-(.*)', basename).group(1)
+        return basename + '.mp4'
+        
+
+    if len(sys.argv) < 2:
+        print('Usage: %s page_url [output_filename.mp4]' % (sys.argv[0]), 
               file=sys.stderr)
         sys.exit(1)
     page_url = sys.argv[1]
-    output_filename = sys.argv[2]
+    output_filename = sys.argv[2] if len(sys.argv) > 2 else default_filename(page_url)
+    print('Output filename:', output_filename)
     Downloader().download_video(page_url, output_filename)
