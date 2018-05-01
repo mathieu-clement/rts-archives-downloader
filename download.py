@@ -36,7 +36,7 @@ class Downloader:
             segment_file = self.__download_to_tempfile(url)
             segment_files.append(segment_file)
 
-        print('Done.')
+        print()
 
         concat_file = tempfile.NamedTemporaryFile(suffix='.ts', 
                                                   mode='wb',
