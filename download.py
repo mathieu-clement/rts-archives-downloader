@@ -32,7 +32,7 @@ class Downloader:
         segment_files = []
 
         for i, url in enumerate(segment_urls):
-            sys.stdout.write('\rDownloading segment %d/%d (%.1f)' % (i+1, num_segments, i+1/num_segments))
+            sys.stdout.write('\rDownloading segment %d/%d (%.1f %)' % (i+1, num_segments, (i+1)/num_segments))
             segment_file = self.__download_to_tempfile(url)
             segment_files.append(segment_file)
 
