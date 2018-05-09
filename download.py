@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 
 from bs4 import BeautifulSoup
+import logging
 import os
 import requests
 import shutil
 import subprocess
 import tempfile
 
+logging.basicConfig(level=logging.INFO)
+
 class Downloader:
+
+    logger = logging.getLogger("Downloader")
 
     def download_video(self, page_url, output_filename):
         """
@@ -27,16 +32,14 @@ class Downloader:
         segment_urls = self.get_segment_urls(index_playlist_url)
 
         num_segments = len(segment_urls)
-        print('%d segments' % (num_segments))
+        self.logger.info('%d segments', num_segments)
 
         segment_files = []
 
         for i, url in enumerate(segment_urls):
-            sys.stdout.write('\rDownloading segment %d/%d (%.1f %%)' % (i+1, num_segments, 100*(i+1)/num_segments))
+            self.logger.info('Downloading segment %d/%d (%.1f %%)', i+1, num_segments, 100*(i+1)/num_segments)
             segment_file = self.__download_to_tempfile(url)
             segment_files.append(segment_file)
-
-        print()
 
         concat_file = tempfile.NamedTemporaryFile(suffix='.ts', 
                                                   mode='wb',
@@ -58,6 +61,9 @@ class Downloader:
             os.remove(concat_file.name)
 
     def get_segment_urls(self, index_playlist_url):
+        "Returns segments (parts of the video) from an index playlist"
+        self.logger.debug("Fetching segments from index playlist %s", 
+                          index_playlist_url)
         text = requests.get(index_playlist_url).text
         lines = text.split('\n')[:-1] # TODO f.readlines?
         urls = [line for line in lines if not line.startswith('#')]
@@ -66,6 +72,7 @@ class Downloader:
 
     def get_master_playlist_url(self, page_url):
         "Returns the playlist with all quality settings. Can be used in VLC."
+        self.logger.debug("Fetching master playlist")
         page_html = requests.get(page_url).text
         video_id = self.__get_video_id__(page_html)
         chapters_json = self.__get_chapters_json__(video_id)
@@ -78,7 +85,9 @@ class Downloader:
         which is a playlist of segments. The highest quality (HD) is selected.
         Can be used directly for streaming within VLC.
         """
-
+        
+        self.logger.debug("Fetch the index playlist based on " + \
+                          "the master playlist %s", master_playlist_url)
         master_text = requests.get(master_playlist_url).text
         lines = master_text.split('\n') # TODO f.readlines?
         # skip first line and trim last empty line
@@ -187,5 +196,6 @@ if __name__ == '__main__':
         sys.exit(1)
     page_url = sys.argv[1]
     output_filename = sys.argv[2] if len(sys.argv) > 2 else default_filename(page_url)
-    print('Output filename:', output_filename)
+    logging.info('Output filename: %s', output_filename)
     Downloader().download_video(page_url, output_filename)
+    subprocess.call(['open', output_filename])
