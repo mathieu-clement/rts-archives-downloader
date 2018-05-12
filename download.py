@@ -3,12 +3,13 @@
 from bs4 import BeautifulSoup
 import logging
 import os
+from pprint import pformat, pprint
 import requests
 import shutil
 import subprocess
 import tempfile
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 class Downloader:
 
@@ -164,6 +165,9 @@ class Downloader:
                         in chapters_json['chapterList']
                         if c['analyticsMetadata']['media_segment_id'] == video_id
                     ]
+        self.logger.debug("Video ID: %s", video_id)
+        self.logger.debug("ChaptersJSON: %s", pformat(chapters_json))
+        self.logger.debug("Filtered chapter: %s", pformat(chapters))
         assert len(chapters) == 1
         chapter = chapters[0]
 
